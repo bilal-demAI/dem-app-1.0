@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import soundfile as sf
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 # ML
 from sklearn.base import BaseEstimator
@@ -173,7 +174,7 @@ def transcribe_incremental(audio_bytes: bytes):
     prog.progress(1.0, text="Done")
     return text_full.strip(), words
 
-# Pretty blue→teal palette that matches your background vibes
+# Cool blue→teal palette
 COOL_COLORS = ["#6366F1","#60A5FA","#22D3EE","#06B6D4","#10B981"]
 
 FEATURE_RANGES = {
@@ -217,7 +218,6 @@ def feature_radar_chart_plotly(feats: dict):
         showlegend=False, height=380, margin=dict(l=10,r=10,t=30,b=10)
     )
     return fig
-
 
 # ---- sidebar: model ----
 st.sidebar.header("Model")
