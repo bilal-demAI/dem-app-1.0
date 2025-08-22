@@ -174,66 +174,48 @@ def transcribe_incremental(audio_bytes: bytes):
     return text_full.strip(), words
 
 # Pretty blue→teal palette that matches your background vibes
-COOL_PALETTE = ["#6366F1", "#60A5FA", "#22D3EE", "#06B6D4", "#10B981"]
-cool_cmap = LinearSegmentedColormap.from_list("cool_brand", COOL_PALETTE)
+COOL_COLORS = ["#6366F1","#60A5FA","#22D3EE","#06B6D4","#10B981"]
 
-# Feature ranges for normalization (adjust to your dataset if needed)
 FEATURE_RANGES = {
-    "wpm": (60, 180),             # words per minute
-    "mean_pause": (0.0, 1.0),     # seconds
-    "pause_rate": (0.0, 20.0),    # pauses/min (>0.5s)
-    "ttr": (0.2, 0.9),            # type–token ratio
-    "disfluency_rate": (0.0, 0.2) # fraction of tokens
+    "wpm": (60, 180),
+    "mean_pause": (0.0, 1.0),
+    "pause_rate": (0.0, 20.0),
+    "ttr": (0.2, 0.9),
+    "disfluency_rate": (0.0, 0.2),
 }
-
-def _normalize(name, value):
+def _normalize(name, val):
     lo, hi = FEATURE_RANGES[name]
-    return max(0.0, min(1.0, (value - lo) / (hi - lo + 1e-9)))
+    return max(0.0, min(1.0, (val - lo) / (hi - lo + 1e-9)))
 
-def feature_bar_chart(feats: dict):
-    labels = FEATURE_LIST
-    values = [feats[k] for k in labels]
-    # color per bar via colormap on normalized value
-    colors = [cool_cmap(_normalize(k, feats[k])) for k in labels]
-
-    fig, ax = plt.subplots(figsize=(6, 3.6))
-    bars = ax.barh(labels, values, edgecolor="none", color=colors)
-    ax.invert_yaxis()
-    ax.grid(axis="x", alpha=0.15)
-    ax.set_xlabel("Value")
-    # write value on bar
-    for b, v in zip(bars, values):
-        ax.text(b.get_width() + (max(values)*0.02 if max(values)>0 else 0.02), b.get_y() + b.get_height()/2,
-                f"{v:.3g}", va="center", fontsize=9)
-    fig.tight_layout()
+def feature_bar_chart_plotly(feats: dict):
+    df = pd.DataFrame({
+        "feature": FEATURE_LIST,
+        "value": [feats[k] for k in FEATURE_LIST],
+    })
+    fig = px.bar(
+        df, x="value", y="feature", orientation="h",
+        color="feature", color_discrete_sequence=COOL_COLORS,
+        labels={"value":"Value","feature":""},
+        height=320
+    )
+    fig.update_layout(margin=dict(l=10,r=10,t=30,b=10))
+    fig.update_traces(marker_line_width=0)
     return fig
 
-def feature_radar_chart(feats: dict):
-    import numpy as np
-    labels = FEATURE_LIST
-    values = [ _normalize(k, feats[k]) for k in labels ]
-    values += values[:1]  # close the loop
-
-    angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
-
-    fig, ax = plt.subplots(subplot_kw=dict(polar=True), figsize=(4.8, 4.8))
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_rlabel_position(0)
-
-    # grid & ticks
-    ax.set_ylim(0, 1)
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=10)
-    ax.set_yticks([0.25, 0.5, 0.75, 1.0])
-    ax.set_yticklabels([".25", ".5", ".75", "1"], fontsize=8)
-    ax.grid(alpha=0.2)
-
-    # fill + outline (cool colors)
-    ax.plot(angles, values, color=COOL_PALETTE[0], linewidth=2)
-    ax.fill(angles, values, color=COOL_PALETTE[-1], alpha=0.25)
-    fig.tight_layout()
+def feature_radar_chart_plotly(feats: dict):
+    vals = [_normalize(k, feats[k]) for k in FEATURE_LIST]
+    vals += vals[:1]
+    cats = FEATURE_LIST + [FEATURE_LIST[0]]
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=vals, theta=cats, fill="toself",
+        line=dict(color=COOL_COLORS[0], width=2),
+        fillcolor="rgba(16,185,129,0.25)"
+    ))
+    fig.update_layout(
+        polar=dict(radialaxis=dict(range=[0,1], tickvals=[0.25,0.5,0.75,1.0])),
+        showlegend=False, height=380, margin=dict(l=10,r=10,t=30,b=10)
+    )
     return fig
 
 
@@ -286,11 +268,8 @@ with left:
                 st.dataframe(pd.DataFrame([feats]), use_container_width=True)
                 
                 st.subheader("Feature visuals")
-                fig_bar = feature_bar_chart(feats)
-                st.pyplot(fig_bar, use_container_width=True)
-            
-                fig_radar = feature_radar_chart(feats)
-                st.pyplot(fig_radar, use_container_width=True)
+                st.plotly_chart(feature_bar_chart_plotly(feats), use_container_width=True)
+                st.plotly_chart(feature_radar_chart_plotly(feats), use_container_width=True)
 
             st.download_button("Download transcript (.txt)", data=text, file_name="transcript.txt")
             out = {"features": feats, "probabilities": {"NC": p_nc, "MCI": p_mci}, "prediction": pred}
