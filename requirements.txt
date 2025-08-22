@@ -1,0 +1,7 @@
+streamlit==1.37.0
+vosk==0.3.45
+numpy
+pandas
+soundfile
+scikit-learn
+joblib
