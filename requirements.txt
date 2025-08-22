@@ -5,3 +5,4 @@ pandas
 soundfile
 scikit-learn
 joblib
+plotly>=5.18
