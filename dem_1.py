@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import soundfile as sf
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 # ML
 from sklearn.base import BaseEstimator
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 try:
     import joblib
 except Exception:
